@@ -49,10 +49,23 @@ export default function Home() {
   const [lang, setLang] = useState("en-US");
   const [rate, setRate] = useState(1);
 
+  // Translation cache: langCode -> sentences
+  const [translationCache, setTranslationCache] = useState<
+    Record<string, string[]>
+  >({});
+  const [translateLoading, setTranslateLoading] = useState(false);
+
+  const isEnglish = lang === "en-US";
+
+  const listenSentences =
+    !isEnglish && translationCache[lang]
+      ? translationCache[lang]
+      : originalSentences;
+
   const activeSentences =
     mode === "understand" && understoodSentences.length > 0
       ? understoodSentences
-      : originalSentences;
+      : listenSentences;
 
   const speech = useSpeech({ sentences: activeSentences, lang, rate });
 
@@ -66,16 +79,48 @@ export default function Home() {
     }
   }, [speech.currentIndex]);
 
-  // Reset understood text when language changes
   const handleLangChange = useCallback(
-    (newLang: string) => {
+    async (newLang: string) => {
       speech.stop();
       setLang(newLang);
+      setError("");
+
+      // Reset understand cache so it regenerates in the new language
       setUnderstoodText(null);
       setUnderstoodSentences([]);
-      if (mode === "understand") setMode("listen");
+
+      // If switching to English, no translation needed
+      if (newLang === "en-US" || !article) return;
+
+      // If we already have a cached translation, use it
+      if (translationCache[newLang]) return;
+
+      // Translate the original text for Listen mode
+      const langLabel =
+        LANGUAGES.find((l) => l.code === newLang)?.label ?? "English";
+      setTranslateLoading(true);
+      try {
+        const res = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: article.content, language: langLabel }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error ?? "Translation failed");
+          return;
+        }
+        setTranslationCache((prev) => ({
+          ...prev,
+          [newLang]: splitSentences(data.content),
+        }));
+      } catch {
+        setError("Network error during translation");
+      } finally {
+        setTranslateLoading(false);
+      }
     },
-    [speech, mode]
+    [speech, article, translationCache],
   );
 
   async function handleSubmit(e: FormEvent) {
@@ -86,6 +131,7 @@ export default function Home() {
     setOriginalSentences([]);
     setUnderstoodText(null);
     setUnderstoodSentences([]);
+    setTranslationCache({});
     setMode("listen");
 
     const trimmed = url.trim();
@@ -299,6 +345,16 @@ export default function Home() {
                   Simplified
                 </span>
               )}
+              {mode === "listen" && !isEnglish && translationCache[lang] && (
+                <span className="text-xs text-accent-light px-2 py-0.5 rounded-full bg-accent-light/10 border border-accent-light/20">
+                  Translated
+                </span>
+              )}
+              {translateLoading && (
+                <span className="flex items-center gap-1.5 text-xs text-muted">
+                  <Spinner /> Translating...
+                </span>
+              )}
             </div>
 
             {/* Reading pane */}
@@ -308,7 +364,7 @@ export default function Home() {
             >
               {activeSentences.map((sentence, i) => (
                 <span
-                  key={`${mode}-${i}`}
+                  key={`${mode}-${lang}-${i}`}
                   ref={(el) => {
                     if (el) sentenceRefs.current.set(i, el);
                     else sentenceRefs.current.delete(i);

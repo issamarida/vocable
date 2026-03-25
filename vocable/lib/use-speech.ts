@@ -14,6 +14,10 @@ export interface UseSpeechReturn {
   skipBack: () => void;
 }
 
+type Engine = "elevenlabs" | "browser";
+
+const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+
 export function useSpeech({
   sentences,
   lang,
@@ -29,40 +33,111 @@ export function useSpeech({
 
   const sentencesRef = useRef(sentences);
   const rateRef = useRef(rate);
+  const langRef = useRef(lang);
   const indexRef = useRef(-1);
   const activeRef = useRef(false);
   const genRef = useRef(0);
+  const engineRef = useRef<Engine>("elevenlabs");
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
   sentencesRef.current = sentences;
   rateRef.current = rate;
-
-  // Keep lang ref in sync (used by page, not by TTS call itself)
-  const langRef = useRef(lang);
   langRef.current = lang;
 
-  const cleanup = useCallback(() => {
+  // Pre-load browser voices
+  useEffect(() => {
+    synth?.getVoices();
+    const h = () => synth?.getVoices();
+    synth?.addEventListener("voiceschanged", h);
+    return () => synth?.removeEventListener("voiceschanged", h);
+  }, []);
+
+  const cleanupAudio = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
-
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.removeAttribute("src");
       audioRef.current.load();
     }
-
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
   }, []);
 
-  const speakAt = useCallback(
+  const cleanupBrowser = useCallback(() => {
+    synth?.cancel();
+  }, []);
+
+  const cleanupAll = useCallback(() => {
+    cleanupAudio();
+    cleanupBrowser();
+  }, [cleanupAudio, cleanupBrowser]);
+
+  /* ── Browser SpeechSynthesis fallback ──────────────── */
+  const speakBrowserAt = useCallback(
+    (index: number) => {
+      if (!synth) return;
+      const gen = ++genRef.current;
+      synth.cancel();
+
+      if (index < 0 || index >= sentencesRef.current.length) {
+        activeRef.current = false;
+        setIsPlaying(false);
+        setIsPaused(false);
+        setCurrentIndex(-1);
+        indexRef.current = -1;
+        return;
+      }
+
+      indexRef.current = index;
+      setCurrentIndex(index);
+
+      setTimeout(() => {
+        if (gen !== genRef.current) return;
+
+        const text = sentencesRef.current[index];
+        if (!text) return;
+
+        const utt = new SpeechSynthesisUtterance(text);
+        const voices = synth.getVoices();
+        const lc = langRef.current;
+        const prefix = lc.split("-")[0];
+        const voice =
+          voices.find((v) => v.lang === lc) ??
+          voices.find((v) => v.lang.startsWith(prefix)) ??
+          voices.find((v) => v.default);
+        if (voice) utt.voice = voice;
+        utt.lang = lc;
+        utt.rate = rateRef.current;
+
+        utt.onend = () => {
+          if (gen === genRef.current && activeRef.current) {
+            speakBrowserAt(indexRef.current + 1);
+          }
+        };
+        utt.onerror = (e) => {
+          if (e.error !== "canceled" && e.error !== "interrupted") {
+            activeRef.current = false;
+            setIsPlaying(false);
+            setIsPaused(false);
+          }
+        };
+
+        synth.speak(utt);
+      }, 50);
+    },
+    [],
+  );
+
+  /* ── ElevenLabs primary engine ─────────────────────── */
+  const speakElevenLabsAt = useCallback(
     (index: number) => {
       const gen = ++genRef.current;
-      cleanup();
+      cleanupAudio();
 
       if (index < 0 || index >= sentencesRef.current.length) {
         activeRef.current = false;
@@ -96,16 +171,11 @@ export function useSpeech({
         .then((blob) => {
           if (!blob || gen !== genRef.current) return;
 
-          if (objectUrlRef.current) {
-            URL.revokeObjectURL(objectUrlRef.current);
-          }
+          if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
           const url = URL.createObjectURL(blob);
           objectUrlRef.current = url;
 
-          if (!audioRef.current) {
-            audioRef.current = new Audio();
-          }
-
+          if (!audioRef.current) audioRef.current = new Audio();
           const audio = audioRef.current;
           audio.src = url;
           audio.playbackRate = rateRef.current;
@@ -115,7 +185,6 @@ export function useSpeech({
               speakAt(indexRef.current + 1);
             }
           };
-
           audio.onerror = () => {
             if (gen === genRef.current) {
               activeRef.current = false;
@@ -134,15 +203,27 @@ export function useSpeech({
         })
         .catch((err) => {
           if (err.name === "AbortError") return;
-          if (gen === genRef.current) {
-            console.error("TTS fetch error:", err);
-            activeRef.current = false;
-            setIsPlaying(false);
-            setIsPaused(false);
-          }
+          if (gen !== genRef.current) return;
+
+          // ElevenLabs failed — switch to browser fallback
+          console.warn("ElevenLabs unavailable, falling back to browser speech");
+          engineRef.current = "browser";
+          speakBrowserAt(index);
         });
     },
-    [cleanup],
+    [cleanupAudio, speakBrowserAt],
+  );
+
+  /* ── Unified dispatch ──────────────────────────────── */
+  const speakAt = useCallback(
+    (index: number) => {
+      if (engineRef.current === "browser") {
+        speakBrowserAt(index);
+      } else {
+        speakElevenLabsAt(index);
+      }
+    },
+    [speakBrowserAt, speakElevenLabsAt],
   );
 
   const play = useCallback(
@@ -156,7 +237,9 @@ export function useSpeech({
   );
 
   const pause = useCallback(() => {
-    if (audioRef.current) {
+    if (engineRef.current === "browser") {
+      synth?.pause();
+    } else if (audioRef.current) {
       audioRef.current.pause();
     }
     setIsPaused(true);
@@ -164,7 +247,9 @@ export function useSpeech({
   }, []);
 
   const resume = useCallback(() => {
-    if (audioRef.current) {
+    if (engineRef.current === "browser") {
+      synth?.resume();
+    } else if (audioRef.current) {
       audioRef.current.play().catch(() => {});
     }
     setIsPaused(false);
@@ -174,12 +259,12 @@ export function useSpeech({
   const stop = useCallback(() => {
     genRef.current++;
     activeRef.current = false;
-    cleanup();
+    cleanupAll();
     setIsPlaying(false);
     setIsPaused(false);
     setCurrentIndex(-1);
     indexRef.current = -1;
-  }, [cleanup]);
+  }, [cleanupAll]);
 
   const skipForward = useCallback(() => {
     const next = Math.min(
@@ -204,21 +289,38 @@ export function useSpeech({
     }
   }, [speakAt]);
 
-  // Apply playback rate changes instantly without re-fetching
+  // Apply playback rate — works for both engines
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = rate;
+    if (audioRef.current) audioRef.current.playbackRate = rate;
+    if (
+      engineRef.current === "browser" &&
+      activeRef.current &&
+      indexRef.current >= 0
+    ) {
+      speakBrowserAt(indexRef.current);
     }
-  }, [rate]);
+  }, [rate, speakBrowserAt]);
+
+  // Chrome keep-alive for browser engine
+  useEffect(() => {
+    if (!synth || !isPlaying || engineRef.current !== "browser") return;
+    const id = setInterval(() => {
+      if (synth.speaking && !synth.paused) {
+        synth.pause();
+        synth.resume();
+      }
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [isPlaying]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       genRef.current++;
       activeRef.current = false;
-      cleanup();
+      cleanupAll();
     };
-  }, [cleanup]);
+  }, [cleanupAll]);
 
   return {
     isPlaying,
