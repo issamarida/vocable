@@ -7,7 +7,7 @@ import {
   useCallback,
   type FormEvent,
 } from "react";
-import { splitSentences } from "@/lib/split-sentences";
+import { splitIntoParagraphs } from "@/lib/split-sentences";
 import { useSpeech } from "@/lib/use-speech";
 
 interface ExtractedContent {
@@ -39,18 +39,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [article, setArticle] = useState<ExtractedContent | null>(null);
-  const [originalSentences, setOriginalSentences] = useState<string[]>([]);
+  const [originalParagraphs, setOriginalParagraphs] = useState<string[][]>([]);
 
   const [mode, setMode] = useState<"listen" | "understand">("listen");
   const [understoodText, setUnderstoodText] = useState<string | null>(null);
-  const [understoodSentences, setUnderstoodSentences] = useState<string[]>([]);
+  const [understoodParagraphs, setUnderstoodParagraphs] = useState<string[][]>([]);
   const [understandLoading, setUnderstandLoading] = useState(false);
 
   const [lang, setLang] = useState("en-US");
   const [rate, setRate] = useState(1);
 
   const [translationCache, setTranslationCache] = useState<
-    Record<string, string[]>
+    Record<string, string[][]>
   >({});
   const [translateLoading, setTranslateLoading] = useState(false);
 
@@ -64,15 +64,17 @@ export default function Home() {
 
   const isEnglish = lang === "en-US";
 
-  const listenSentences =
+  const listenParagraphs =
     !isEnglish && translationCache[lang]
       ? translationCache[lang]
-      : originalSentences;
+      : originalParagraphs;
 
-  const activeSentences =
-    mode === "understand" && understoodSentences.length > 0
-      ? understoodSentences
-      : listenSentences;
+  const activeParagraphs =
+    mode === "understand" && understoodParagraphs.length > 0
+      ? understoodParagraphs
+      : listenParagraphs;
+
+  const activeSentences = activeParagraphs.flat();
 
   const speech = useSpeech({ sentences: activeSentences, lang, rate });
 
@@ -92,7 +94,7 @@ export default function Home() {
       setLang(newLang);
       setError("");
       setUnderstoodText(null);
-      setUnderstoodSentences([]);
+      setUnderstoodParagraphs([]);
 
       if (newLang === "en-US" || !article) return;
       if (translationCache[newLang]) return;
@@ -113,7 +115,7 @@ export default function Home() {
         }
         setTranslationCache((prev) => ({
           ...prev,
-          [newLang]: splitSentences(data.content),
+          [newLang]: splitIntoParagraphs(data.content),
         }));
       } catch {
         setError("Network error during translation");
@@ -129,9 +131,9 @@ export default function Home() {
     speech.stop();
     setError("");
     setArticle(null);
-    setOriginalSentences([]);
+    setOriginalParagraphs([]);
     setUnderstoodText(null);
-    setUnderstoodSentences([]);
+    setUnderstoodParagraphs([]);
     setTranslationCache({});
     setMode("listen");
 
@@ -154,7 +156,7 @@ export default function Home() {
         return;
       }
       setArticle(data);
-      setOriginalSentences(splitSentences(data.content));
+      setOriginalParagraphs(splitIntoParagraphs(data.content));
     } catch {
       setError("Network error — please check the URL and try again");
     } finally {
@@ -186,7 +188,7 @@ export default function Home() {
         return;
       }
       setUnderstoodText(data.content);
-      setUnderstoodSentences(splitSentences(data.content));
+      setUnderstoodParagraphs(splitIntoParagraphs(data.content));
       setMode("understand");
     } catch {
       setError("Network error while generating explanation");
@@ -389,24 +391,37 @@ export default function Home() {
               className="rounded-2xl border border-border bg-surface p-8 max-h-[55vh] overflow-y-auto leading-[2] text-[16px] scroll-smooth scrollbar-thin"
               style={{ boxShadow: "var(--shadow)" }}
             >
-              {activeSentences.map((sentence, i) => (
-                <span
-                  key={`${mode}-${lang}-${i}`}
-                  ref={(el) => {
-                    if (el) sentenceRefs.current.set(i, el);
-                    else sentenceRefs.current.delete(i);
-                  }}
-                  className={`inline transition-all duration-200 rounded-md px-1 -mx-0.5 ${
-                    speech.currentIndex === i
-                      ? "bg-highlight text-accent font-medium ring-1 ring-highlight-ring"
-                      : speech.currentIndex >= 0 && i < speech.currentIndex
-                        ? "text-muted"
-                        : "text-foreground"
-                  }`}
-                >
-                  {sentence}{" "}
-                </span>
-              ))}
+              {(() => {
+                let flatIdx = 0;
+                return activeParagraphs.map((para, pi) => (
+                  <div
+                    key={`${mode}-${lang}-para-${pi}`}
+                    className={pi > 0 ? "mt-5" : ""}
+                  >
+                    {para.map((sentence, si) => {
+                      const idx = flatIdx++;
+                      return (
+                        <span
+                          key={`${mode}-${lang}-${idx}`}
+                          ref={(el) => {
+                            if (el) sentenceRefs.current.set(idx, el);
+                            else sentenceRefs.current.delete(idx);
+                          }}
+                          className={`inline transition-all duration-200 rounded-md px-1 -mx-0.5 ${
+                            speech.currentIndex === idx
+                              ? "bg-highlight text-accent font-medium ring-1 ring-highlight-ring"
+                              : speech.currentIndex >= 0 && idx < speech.currentIndex
+                                ? "text-muted"
+                                : "text-foreground"
+                          }`}
+                        >
+                          {sentence}{si < para.length - 1 ? " " : ""}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         )}

@@ -15,3 +15,15 @@ export function splitSentences(text: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 }
+
+/**
+ * Splits text into paragraphs (by double-newline), then each paragraph
+ * into sentences.  Returns string[][] — an array of paragraphs, each
+ * containing an array of sentences.
+ */
+export function splitIntoParagraphs(text: string): string[][] {
+  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim());
+  return paragraphs
+    .map((p) => splitSentences(p.trim()))
+    .filter((sentences) => sentences.length > 0);
+}

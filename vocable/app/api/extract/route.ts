@@ -2,6 +2,53 @@ import { NextRequest, NextResponse } from "next/server";
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 
+/**
+ * Walk the Readability HTML output and extract text from block-level
+ * elements, preserving the original paragraph/heading structure.
+ */
+function extractParagraphs(html: string): string[] {
+  const { document: doc } = parseHTML(`<div id="vroot">${html}</div>`);
+  const root = doc.getElementById("vroot");
+  if (!root) return [];
+
+  const BLOCK = new Set([
+    "P", "H1", "H2", "H3", "H4", "H5", "H6",
+    "LI", "BLOCKQUOTE", "PRE", "FIGCAPTION", "DT", "DD",
+  ]);
+  const CONTAINER = new Set([
+    "DIV", "SECTION", "ARTICLE", "UL", "OL", "DL",
+    "TABLE", "TBODY", "THEAD", "TR", "FIGURE",
+    "MAIN", "ASIDE", "HEADER", "FOOTER",
+  ]);
+
+  const paragraphs: string[] = [];
+
+  function walk(node: unknown) {
+    const el = node as { nodeType: number; tagName?: string; textContent?: string; childNodes?: ArrayLike<unknown> };
+    for (const child of Array.from(el.childNodes ?? [])) {
+      const c = child as typeof el;
+      if (c.nodeType === 3) {
+        const text = (c.textContent ?? "").trim();
+        if (text) paragraphs.push(text);
+      } else if (c.nodeType === 1) {
+        const tag = (c.tagName ?? "").toUpperCase();
+        if (BLOCK.has(tag)) {
+          const text = (c.textContent ?? "").trim();
+          if (text) paragraphs.push(text);
+        } else if (CONTAINER.has(tag)) {
+          walk(c);
+        } else {
+          const text = (c.textContent ?? "").trim();
+          if (text) paragraphs.push(text);
+        }
+      }
+    }
+  }
+
+  walk(root);
+  return paragraphs;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { url } = await req.json();
@@ -58,9 +105,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const paragraphs = extractParagraphs(article.content ?? "");
+    const content =
+      paragraphs.length > 0
+        ? paragraphs.join("\n\n")
+        : (article.textContent ?? "").trim();
+
     return NextResponse.json({
       title: article.title,
-      content: (article.textContent ?? "").trim(),
+      content,
       excerpt: article.excerpt ?? "",
     });
   } catch (err) {
