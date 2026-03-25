@@ -49,11 +49,18 @@ export default function Home() {
   const [lang, setLang] = useState("en-US");
   const [rate, setRate] = useState(1);
 
-  // Translation cache: langCode -> sentences
   const [translationCache, setTranslationCache] = useState<
     Record<string, string[]>
   >({});
   const [translateLoading, setTranslateLoading] = useState(false);
+
+  const [dark, setDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setDark(document.documentElement.classList.contains("dark"));
+  }, []);
 
   const isEnglish = lang === "en-US";
 
@@ -84,18 +91,12 @@ export default function Home() {
       speech.stop();
       setLang(newLang);
       setError("");
-
-      // Reset understand cache so it regenerates in the new language
       setUnderstoodText(null);
       setUnderstoodSentences([]);
 
-      // If switching to English, no translation needed
       if (newLang === "en-US" || !article) return;
-
-      // If we already have a cached translation, use it
       if (translationCache[newLang]) return;
 
-      // Translate the original text for Listen mode
       const langLabel =
         LANGUAGES.find((l) => l.code === newLang)?.label ?? "English";
       setTranslateLoading(true);
@@ -163,13 +164,11 @@ export default function Home() {
 
   async function handleUnderstand() {
     if (!article) return;
-
     if (understoodText) {
       speech.stop();
       setMode("understand");
       return;
     }
-
     speech.stop();
     setUnderstandLoading(true);
     setError("");
@@ -218,57 +217,76 @@ export default function Home() {
 
   const hasContent = article && activeSentences.length > 0;
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      {/* Accent gradient top bar */}
-      <div className="h-1 shrink-0 bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500" />
+  function toggleTheme() {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    try { localStorage.setItem("theme", next ? "dark" : "light"); } catch {}
+  }
 
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="w-full border-b border-border bg-surface/80 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="w-full border-b border-border bg-surface sticky top-0 z-20">
+        <div className="max-w-2xl mx-auto px-6 py-5 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">
+            <h1 className="text-[22px] font-semibold tracking-tight text-foreground">
               Vocable
             </h1>
-            <p className="text-xs text-muted mt-0.5">
+            <p className="text-[13px] text-muted mt-0.5">
               Turn any webpage into audio you can follow and understand
             </p>
           </div>
-          {article && (
-            <select
-              value={lang}
-              onChange={(e) => handleLangChange(e.target.value)}
-              className="h-8 px-3 rounded-md bg-surface border border-border text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-accent-light cursor-pointer"
+          <div className="flex items-center gap-2">
+            {article && (
+              <select
+                value={lang}
+                onChange={(e) => handleLangChange(e.target.value)}
+                className="h-9 px-3 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer transition"
+              >
+                {LANGUAGES.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              onClick={toggleTheme}
+              aria-label="Toggle dark mode"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-border bg-background text-muted hover:text-foreground hover:bg-accent-soft transition-all"
             >
-              {LANGUAGES.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
-          )}
+              {mounted ? (
+                dark ? <IconSun className="w-[18px] h-[18px]" /> : <IconMoon className="w-[18px] h-[18px]" />
+              ) : (
+                <span className="w-[18px] h-[18px]" />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Main */}
       <main
         className="flex-1 flex flex-col"
-        style={{ paddingBottom: hasContent ? 160 : 0 }}
+        style={{ paddingBottom: hasContent ? 140 : 0 }}
       >
         {/* URL Input */}
-        <div className="w-full max-w-3xl mx-auto px-6 pt-8 pb-4">
+        <div className="w-full max-w-2xl mx-auto px-6 pt-10 pb-6">
           <form onSubmit={handleSubmit} className="flex gap-3">
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="Paste a webpage URL..."
-              className="flex-1 h-12 px-4 rounded-xl bg-surface border border-border text-foreground placeholder:text-muted/60 focus:outline-none focus:ring-2 focus:ring-accent-light/50 focus:border-accent-light/30 transition-all"
+              className="flex-1 h-[52px] px-5 text-[15px] rounded-2xl bg-surface border border-border text-foreground placeholder:text-muted/50 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+              style={{ boxShadow: "var(--shadow)" }}
             />
             <button
               type="submit"
               disabled={loading}
-              className="h-12 px-6 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-600/20 hover:shadow-violet-500/30"
+              className="h-[52px] px-7 rounded-2xl bg-accent hover:bg-accent-hover text-white text-[15px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ boxShadow: "var(--shadow-md)" }}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -283,8 +301,8 @@ export default function Home() {
 
         {/* Error */}
         {error && (
-          <div className="w-full max-w-3xl mx-auto px-6">
-            <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+          <div className="w-full max-w-2xl mx-auto px-6 pb-4">
+            <div className="px-4 py-3 rounded-xl border text-sm bg-red-50 border-red-200 text-red-600 dark:bg-red-950/40 dark:border-red-900/50 dark:text-red-400">
               {error}
             </div>
           </div>
@@ -292,75 +310,84 @@ export default function Home() {
 
         {/* Content Area */}
         {article && (
-          <div className="w-full max-w-3xl mx-auto px-6 pt-4 flex flex-col gap-5 flex-1">
+          <div className="w-full max-w-2xl mx-auto px-6 flex flex-col gap-6 flex-1">
             {/* Title */}
             <div>
-              <h2 className="text-lg font-semibold leading-snug">
+              <h2 className="text-xl font-semibold leading-snug text-foreground">
                 {article.title}
               </h2>
               {article.excerpt && (
-                <p className="text-sm text-muted mt-1.5 leading-relaxed line-clamp-2">
+                <p className="text-sm text-muted mt-2 leading-relaxed line-clamp-2">
                   {article.excerpt}
                 </p>
               )}
             </div>
 
-            {/* Mode toggle */}
-            <div className="flex items-center gap-2">
-              <div className="flex rounded-lg border border-border overflow-hidden">
-                <button
-                  onClick={handleListen}
-                  className={`px-4 py-2 text-sm font-medium transition-all ${
-                    mode === "listen"
-                      ? "bg-accent text-white"
-                      : "bg-surface text-muted hover:text-foreground hover:bg-surface-hover"
-                  }`}
+            {/* Controls row */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                {/* Mode toggle */}
+                <div
+                  className="flex rounded-xl overflow-hidden border border-border"
+                  style={{ boxShadow: "var(--shadow)" }}
                 >
-                  <span className="flex items-center gap-1.5">
-                    <IconHeadphones className="w-3.5 h-3.5" />
-                    Listen
+                  <button
+                    onClick={handleListen}
+                    className={`px-5 py-2.5 text-sm font-medium transition-all ${
+                      mode === "listen"
+                        ? "bg-accent text-white"
+                        : "bg-surface text-muted hover:text-foreground hover:bg-background"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <IconHeadphones className="w-4 h-4" />
+                      Listen
+                    </span>
+                  </button>
+                  <button
+                    onClick={handleUnderstand}
+                    disabled={understandLoading}
+                    className={`px-5 py-2.5 text-sm font-medium transition-all border-l border-border disabled:opacity-50 ${
+                      mode === "understand"
+                        ? "bg-accent text-white"
+                        : "bg-surface text-muted hover:text-foreground hover:bg-background"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {understandLoading ? (
+                        <Spinner />
+                      ) : (
+                        <IconBrain className="w-4 h-4" />
+                      )}
+                      Understand
+                    </span>
+                  </button>
+                </div>
+
+                {/* Status badges */}
+                {mode === "understand" && understoodText && (
+                  <span className="text-xs text-accent font-medium px-2.5 py-1 rounded-full bg-accent-soft">
+                    Simplified
                   </span>
-                </button>
-                <button
-                  onClick={handleUnderstand}
-                  disabled={understandLoading}
-                  className={`px-4 py-2 text-sm font-medium transition-all border-l border-border disabled:opacity-50 ${
-                    mode === "understand"
-                      ? "bg-accent text-white"
-                      : "bg-surface text-muted hover:text-foreground hover:bg-surface-hover"
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5">
-                    {understandLoading ? (
-                      <Spinner />
-                    ) : (
-                      <IconBrain className="w-3.5 h-3.5" />
-                    )}
-                    Understand
+                )}
+                {mode === "listen" && !isEnglish && translationCache[lang] && (
+                  <span className="text-xs text-accent font-medium px-2.5 py-1 rounded-full bg-accent-soft">
+                    Translated
                   </span>
-                </button>
+                )}
+                {translateLoading && (
+                  <span className="flex items-center gap-1.5 text-xs text-muted">
+                    <Spinner /> Translating...
+                  </span>
+                )}
               </div>
-              {mode === "understand" && understoodText && (
-                <span className="text-xs text-accent-light px-2 py-0.5 rounded-full bg-accent-light/10 border border-accent-light/20">
-                  Simplified
-                </span>
-              )}
-              {mode === "listen" && !isEnglish && translationCache[lang] && (
-                <span className="text-xs text-accent-light px-2 py-0.5 rounded-full bg-accent-light/10 border border-accent-light/20">
-                  Translated
-                </span>
-              )}
-              {translateLoading && (
-                <span className="flex items-center gap-1.5 text-xs text-muted">
-                  <Spinner /> Translating...
-                </span>
-              )}
             </div>
 
             {/* Reading pane */}
             <div
               ref={contentRef}
-              className="rounded-xl border border-border bg-surface/60 p-6 max-h-[55vh] overflow-y-auto leading-[1.9] text-[15px] scroll-smooth scrollbar-thin"
+              className="rounded-2xl border border-border bg-surface p-8 max-h-[55vh] overflow-y-auto leading-[2] text-[16px] scroll-smooth scrollbar-thin"
+              style={{ boxShadow: "var(--shadow)" }}
             >
               {activeSentences.map((sentence, i) => (
                 <span
@@ -369,12 +396,12 @@ export default function Home() {
                     if (el) sentenceRefs.current.set(i, el);
                     else sentenceRefs.current.delete(i);
                   }}
-                  className={`inline transition-all duration-200 rounded-sm px-0.5 -mx-0.5 ${
+                  className={`inline transition-all duration-200 rounded-md px-1 -mx-0.5 ${
                     speech.currentIndex === i
-                      ? "bg-accent-light/20 text-white ring-1 ring-accent-light/30"
+                      ? "bg-highlight text-accent font-medium ring-1 ring-highlight-ring"
                       : speech.currentIndex >= 0 && i < speech.currentIndex
-                        ? "text-muted/70"
-                        : "text-foreground/90"
+                        ? "text-muted"
+                        : "text-foreground"
                   }`}
                 >
                   {sentence}{" "}
@@ -388,13 +415,13 @@ export default function Home() {
         {!article && !loading && !error && (
           <div className="flex-1 flex items-center justify-center px-6">
             <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-violet-600/20 to-fuchsia-600/20 border border-violet-500/10 flex items-center justify-center">
-                <IconHeadphones className="w-7 h-7 text-violet-400" />
+              <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-accent-soft flex items-center justify-center">
+                <IconHeadphones className="w-9 h-9 text-accent" />
               </div>
-              <p className="text-lg text-muted font-medium">
-                Paste a URL above to get started
+              <p className="text-xl text-foreground font-medium">
+                Paste a URL to get started
               </p>
-              <p className="text-sm text-muted/60 mt-1.5 max-w-xs mx-auto">
+              <p className="text-sm text-muted mt-2 max-w-sm mx-auto leading-relaxed">
                 Works best with articles, blog posts, and documentation pages
               </p>
             </div>
@@ -402,37 +429,41 @@ export default function Home() {
         )}
       </main>
 
-      {/* Playback bar — fixed bottom */}
+      {/* Playback bar */}
       {hasContent && (
-        <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-surface/95 backdrop-blur-lg">
-          {/* Progress bar */}
-          <div className="h-0.5 bg-border">
+        <div
+          className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-surface"
+          style={{ boxShadow: "0 -4px 20px rgba(0,0,0,0.05)" }}
+        >
+          {/* Progress */}
+          <div className="h-1 bg-border/50">
             <div
-              className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-300 ease-out"
+              className="h-full bg-accent transition-all duration-300 ease-out rounded-r-full"
               style={{ width: `${progress}%` }}
             />
           </div>
 
-          <div className="max-w-3xl mx-auto px-6 py-3">
-            <div className="flex items-center justify-between gap-4">
-              {/* Playback controls */}
-              <div className="flex items-center gap-1">
+          <div className="max-w-2xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between gap-6">
+              {/* Transport controls */}
+              <div className="flex items-center gap-2">
                 <button
                   onClick={speech.skipBack}
                   disabled={speech.currentIndex <= 0 && !speech.isPlaying}
-                  className="w-9 h-9 flex items-center justify-center rounded-full text-muted hover:text-foreground hover:bg-white/5 transition-all disabled:opacity-30"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl text-muted hover:text-foreground hover:bg-background transition-all disabled:opacity-25"
                 >
-                  <IconSkipBack className="w-4 h-4" />
+                  <IconSkipBack className="w-[18px] h-[18px]" />
                 </button>
 
                 <button
                   onClick={togglePlayPause}
-                  className="w-11 h-11 flex items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white shadow-lg shadow-violet-600/25 transition-all"
+                  className="w-12 h-12 flex items-center justify-center rounded-2xl bg-accent hover:bg-accent-hover text-white transition-all"
+                  style={{ boxShadow: "var(--shadow-md)" }}
                 >
                   {speech.isPlaying ? (
-                    <IconPause className="w-4.5 h-4.5" />
+                    <IconPause className="w-5 h-5" />
                   ) : (
-                    <IconPlay className="w-4.5 h-4.5 ml-0.5" />
+                    <IconPlay className="w-5 h-5 ml-0.5" />
                   )}
                 </button>
 
@@ -442,9 +473,9 @@ export default function Home() {
                     speech.currentIndex >= activeSentences.length - 1 &&
                     !speech.isPlaying
                   }
-                  className="w-9 h-9 flex items-center justify-center rounded-full text-muted hover:text-foreground hover:bg-white/5 transition-all disabled:opacity-30"
+                  className="w-10 h-10 flex items-center justify-center rounded-xl text-muted hover:text-foreground hover:bg-background transition-all disabled:opacity-25"
                 >
-                  <IconSkipForward className="w-4 h-4" />
+                  <IconSkipForward className="w-[18px] h-[18px]" />
                 </button>
               </div>
 
@@ -455,16 +486,19 @@ export default function Home() {
                 {activeSentences.length}
               </div>
 
-              {/* Speed control */}
-              <div className="flex items-center gap-0.5 rounded-lg border border-border overflow-hidden">
+              {/* Speed */}
+              <div
+                className="flex items-center rounded-xl overflow-hidden border border-border"
+                style={{ boxShadow: "var(--shadow)" }}
+              >
                 {SPEEDS.map((s) => (
                   <button
                     key={s}
                     onClick={() => setRate(s)}
-                    className={`px-2.5 py-1.5 text-xs font-medium transition-all ${
+                    className={`px-3 py-2 text-xs font-medium transition-all ${
                       rate === s
                         ? "bg-accent text-white"
-                        : "bg-transparent text-muted hover:text-foreground hover:bg-white/5"
+                        : "bg-surface text-muted hover:text-foreground hover:bg-background"
                     }`}
                   >
                     {s}x
@@ -481,6 +515,30 @@ export default function Home() {
 
 /* ── Icons ─────────────────────────────────────────────── */
 
+function IconSun({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function IconMoon({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
 function Spinner() {
   return (
     <svg
@@ -490,7 +548,7 @@ function Spinner() {
       stroke="currentColor"
       strokeWidth={2.5}
     >
-      <circle cx="12" cy="12" r="10" className="opacity-25" />
+      <circle cx="12" cy="12" r="10" className="opacity-20" />
       <path
         d="M4 12a8 8 0 018-8"
         className="opacity-75"
@@ -502,12 +560,7 @@ function Spinner() {
 
 function IconPlay({ className = "" }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="none"
-    >
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M8 5.14v14.72a1 1 0 001.5.86l11-7.36a1 1 0 000-1.72l-11-7.36A1 1 0 008 5.14z" />
     </svg>
   );
@@ -515,12 +568,7 @@ function IconPlay({ className = "" }) {
 
 function IconPause({ className = "" }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="none"
-    >
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <rect x="6" y="4" width="4" height="16" rx="1" />
       <rect x="14" y="4" width="4" height="16" rx="1" />
     </svg>
@@ -529,12 +577,7 @@ function IconPause({ className = "" }) {
 
 function IconSkipBack({ className = "" }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="none"
-    >
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M19 20a1 1 0 01-1.5.86L8 14.18V20a1 1 0 01-2 0V4a1 1 0 012 0v5.82l9.5-6.68A1 1 0 0119 4v16z" />
     </svg>
   );
@@ -542,12 +585,7 @@ function IconSkipBack({ className = "" }) {
 
 function IconSkipForward({ className = "" }) {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="none"
-    >
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M5 4a1 1 0 011.5-.86L16 9.82V4a1 1 0 012 0v16a1 1 0 01-2 0v-5.82l-9.5 6.68A1 1 0 015 20V4z" />
     </svg>
   );

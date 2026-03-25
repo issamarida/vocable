@@ -42,11 +42,13 @@ export function useSpeech({
   const abortRef = useRef<AbortController | null>(null);
   const objectUrlRef = useRef<string | null>(null);
 
+  // Ref-based dispatch to break circular closure between speakElevenLabsAt ↔ speakAt
+  const speakAtRef = useRef<(index: number) => void>(() => {});
+
   sentencesRef.current = sentences;
   rateRef.current = rate;
   langRef.current = lang;
 
-  // Pre-load browser voices
   useEffect(() => {
     synth?.getVoices();
     const h = () => synth?.getVoices();
@@ -77,17 +79,24 @@ export function useSpeech({
     cleanupBrowser();
   }, [cleanupAudio, cleanupBrowser]);
 
+  const markStopped = useCallback(() => {
+    activeRef.current = false;
+    setIsPlaying(false);
+    setIsPaused(false);
+  }, []);
+
   /* ── Browser SpeechSynthesis fallback ──────────────── */
   const speakBrowserAt = useCallback(
     (index: number) => {
-      if (!synth) return;
+      if (!synth) {
+        markStopped();
+        return;
+      }
       const gen = ++genRef.current;
       synth.cancel();
 
       if (index < 0 || index >= sentencesRef.current.length) {
-        activeRef.current = false;
-        setIsPlaying(false);
-        setIsPaused(false);
+        markStopped();
         setCurrentIndex(-1);
         indexRef.current = -1;
         return;
@@ -116,21 +125,19 @@ export function useSpeech({
 
         utt.onend = () => {
           if (gen === genRef.current && activeRef.current) {
-            speakBrowserAt(indexRef.current + 1);
+            speakAtRef.current(indexRef.current + 1);
           }
         };
         utt.onerror = (e) => {
           if (e.error !== "canceled" && e.error !== "interrupted") {
-            activeRef.current = false;
-            setIsPlaying(false);
-            setIsPaused(false);
+            markStopped();
           }
         };
 
         synth.speak(utt);
       }, 50);
     },
-    [],
+    [markStopped],
   );
 
   /* ── ElevenLabs primary engine ─────────────────────── */
@@ -140,9 +147,7 @@ export function useSpeech({
       cleanupAudio();
 
       if (index < 0 || index >= sentencesRef.current.length) {
-        activeRef.current = false;
-        setIsPlaying(false);
-        setIsPaused(false);
+        markStopped();
         setCurrentIndex(-1);
         indexRef.current = -1;
         return;
@@ -152,7 +157,11 @@ export function useSpeech({
       setCurrentIndex(index);
 
       const text = sentencesRef.current[index];
-      if (!text) return;
+      if (!text) {
+        // Empty sentence — skip to next
+        if (activeRef.current) speakAtRef.current(index + 1);
+        return;
+      }
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -182,22 +191,18 @@ export function useSpeech({
 
           audio.onended = () => {
             if (gen === genRef.current && activeRef.current) {
-              speakAt(indexRef.current + 1);
+              speakAtRef.current(indexRef.current + 1);
             }
           };
           audio.onerror = () => {
             if (gen === genRef.current) {
-              activeRef.current = false;
-              setIsPlaying(false);
-              setIsPaused(false);
+              markStopped();
             }
           };
 
           audio.play().catch(() => {
             if (gen === genRef.current) {
-              activeRef.current = false;
-              setIsPlaying(false);
-              setIsPaused(false);
+              markStopped();
             }
           });
         })
@@ -205,13 +210,12 @@ export function useSpeech({
           if (err.name === "AbortError") return;
           if (gen !== genRef.current) return;
 
-          // ElevenLabs failed — switch to browser fallback
           console.warn("ElevenLabs unavailable, falling back to browser speech");
           engineRef.current = "browser";
           speakBrowserAt(index);
         });
     },
-    [cleanupAudio, speakBrowserAt],
+    [cleanupAudio, speakBrowserAt, markStopped],
   );
 
   /* ── Unified dispatch ──────────────────────────────── */
@@ -226,8 +230,13 @@ export function useSpeech({
     [speakBrowserAt, speakElevenLabsAt],
   );
 
+  // Keep the ref in sync so callbacks always call the latest speakAt
+  speakAtRef.current = speakAt;
+
   const play = useCallback(
     (fromIndex = 0) => {
+      // Retry ElevenLabs at the start of each new playback session
+      engineRef.current = "elevenlabs";
       activeRef.current = true;
       setIsPlaying(true);
       setIsPaused(false);
@@ -289,7 +298,6 @@ export function useSpeech({
     }
   }, [speakAt]);
 
-  // Apply playback rate — works for both engines
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = rate;
     if (
@@ -313,7 +321,6 @@ export function useSpeech({
     return () => clearInterval(id);
   }, [isPlaying]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       genRef.current++;
