@@ -444,6 +444,25 @@ export default function Home() {
         )}
       </main>
 
+      {/* Chrome Extension promo — right sidebar, visible on wide screens */}
+      <aside className="hidden xl:flex fixed right-8 top-1/2 -translate-y-1/2 w-64 flex-col items-center gap-5 z-10">
+        <a
+          href="https://www.youtube.com/watch?v=PLACEHOLDER"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full text-center px-5 py-3.5 rounded-xl bg-[#111] hover:bg-[#222] text-white text-sm font-semibold tracking-wide transition-all"
+          style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
+        >
+          DOWNLOAD CHROME EXTENSION VERSION
+        </a>
+        <img
+          src="/extension.jpeg"
+          alt="Vocable Chrome Extension preview"
+          className="w-full rounded-xl border border-border"
+          style={{ boxShadow: "var(--shadow-lg)" }}
+        />
+      </aside>
+
       {/* Playback bar */}
       {hasContent && (
         <div
