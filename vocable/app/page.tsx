@@ -229,15 +229,20 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="w-full border-b border-border bg-surface sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div>
-            <h1 className="text-[22px] font-semibold tracking-tight text-foreground">
-              Vocable
-            </h1>
-            <p className="text-[13px] text-muted mt-0.5">
-              Turn any webpage into audio you can follow and understand
-            </p>
+      <header className="w-full border-b border-border bg-surface/80 backdrop-blur-md sticky top-0 z-20">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center">
+              <IconHeadphones className="w-[18px] h-[18px] text-white" />
+            </div>
+            <div>
+              <h1 className="text-[18px] font-bold tracking-tight text-foreground leading-none">
+                Vocable
+              </h1>
+              <p className="text-[11px] text-muted mt-0.5">
+                hear the web
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {article && (
@@ -430,16 +435,16 @@ export default function Home() {
         {!article && !loading && !error && (
           <>
             {/* Hero */}
-            <div className="w-full max-w-3xl mx-auto px-6 pt-10 pb-16 text-center">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-soft text-accent text-xs font-semibold tracking-wide mb-6">
-                <IconHeadphones className="w-3.5 h-3.5" />
-                AI-POWERED READING ASSISTANT
-              </div>
-              <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
-                Read less.<br />Understand more.
+            <div className="w-full max-w-3xl mx-auto px-6 pt-12 pb-16 text-center">
+              <h2 className="text-4xl sm:text-[56px] font-extrabold tracking-tight text-foreground leading-[1.1]">
+                Too long?<br />
+                <span className="text-accent">Just listen.</span>
               </h2>
-              <p className="mt-5 text-lg text-muted max-w-xl mx-auto leading-relaxed">
-                Vocable turns any webpage into audio you can follow and understand — in 13 languages, powered by AI.
+              <p className="mt-6 text-lg sm:text-xl text-muted max-w-lg mx-auto leading-relaxed">
+                Drop a link. We read it to you. Simple as that.
+              </p>
+              <p className="mt-2 text-sm text-muted/60">
+                Works in 13 languages. No sign-up. No nonsense.
               </p>
             </div>
 
@@ -450,46 +455,46 @@ export default function Home() {
                   <div className="w-11 h-11 mx-auto mb-3.5 rounded-xl bg-accent-soft flex items-center justify-center">
                     <IconHeadphones className="w-5 h-5 text-accent" />
                   </div>
-                  <h3 className="text-sm font-semibold text-foreground">Listen Mode</h3>
-                  <p className="mt-1.5 text-xs text-muted leading-relaxed">Hear any webpage read aloud with premium AI voices</p>
+                  <h3 className="text-sm font-semibold text-foreground">Listen</h3>
+                  <p className="mt-1.5 text-xs text-muted leading-relaxed">Hear the page out loud, word for word. Like a podcast of whatever you want.</p>
                 </div>
                 <div className="rounded-2xl border border-border bg-surface p-6 text-center" style={{ boxShadow: "var(--shadow)" }}>
                   <div className="w-11 h-11 mx-auto mb-3.5 rounded-xl bg-accent-soft flex items-center justify-center">
                     <IconBrain className="w-5 h-5 text-accent" />
                   </div>
-                  <h3 className="text-sm font-semibold text-foreground">Understand Mode</h3>
-                  <p className="mt-1.5 text-xs text-muted leading-relaxed">Get AI-simplified explanations of complex content</p>
+                  <h3 className="text-sm font-semibold text-foreground">Understand</h3>
+                  <p className="mt-1.5 text-xs text-muted leading-relaxed">Too dense? We break it down into plain language so it actually makes sense.</p>
                 </div>
                 <div className="rounded-2xl border border-border bg-surface p-6 text-center" style={{ boxShadow: "var(--shadow)" }}>
                   <div className="w-11 h-11 mx-auto mb-3.5 rounded-xl bg-accent-soft flex items-center justify-center">
                     <IconGlobe className="w-5 h-5 text-accent" />
                   </div>
-                  <h3 className="text-sm font-semibold text-foreground">13 Languages</h3>
-                  <p className="mt-1.5 text-xs text-muted leading-relaxed">Listen and understand in your preferred language</p>
+                  <h3 className="text-sm font-semibold text-foreground">Any language</h3>
+                  <p className="mt-1.5 text-xs text-muted leading-relaxed">English page but you think in Spanish? We handle that. 13 languages and counting.</p>
                 </div>
               </div>
             </div>
 
             {/* How it works */}
             <div className="w-full max-w-3xl mx-auto px-6 pb-16">
-              <h3 className="text-center text-xs font-semibold tracking-widest text-muted uppercase mb-8">How it works</h3>
+              <h3 className="text-center text-sm font-semibold text-muted mb-8">Three steps. That&apos;s it.</h3>
               <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
                 <div className="flex-1 text-center px-4">
                   <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold">1</div>
-                  <p className="text-sm font-medium text-foreground">Paste any URL</p>
-                  <p className="text-xs text-muted mt-1">Articles, blogs, docs — anything</p>
+                  <p className="text-sm font-medium text-foreground">Drop a link</p>
+                  <p className="text-xs text-muted mt-1">Any article, blog, or doc</p>
                 </div>
                 <div className="hidden sm:block w-12 h-px bg-border" />
                 <div className="flex-1 text-center px-4">
                   <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold">2</div>
-                  <p className="text-sm font-medium text-foreground">Choose your mode</p>
-                  <p className="text-xs text-muted mt-1">Listen word-for-word or get a simplified explanation</p>
+                  <p className="text-sm font-medium text-foreground">Pick a mode</p>
+                  <p className="text-xs text-muted mt-1">Listen or Understand — your call</p>
                 </div>
                 <div className="hidden sm:block w-12 h-px bg-border" />
                 <div className="flex-1 text-center px-4">
                   <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold">3</div>
-                  <p className="text-sm font-medium text-foreground">Press play</p>
-                  <p className="text-xs text-muted mt-1">Follow along as text highlights in real time</p>
+                  <p className="text-sm font-medium text-foreground">Hit play</p>
+                  <p className="text-xs text-muted mt-1">Sit back — we highlight every word as it goes</p>
                 </div>
               </div>
             </div>
@@ -501,14 +506,11 @@ export default function Home() {
       <section className="w-full border-t border-border bg-surface">
         <div className="max-w-2xl mx-auto px-6 py-16">
           <div className="flex flex-col items-center gap-6">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-soft text-accent text-xs font-semibold tracking-wide">
-              ALSO AVAILABLE AS
-            </div>
-            <h3 className="text-2xl font-bold text-foreground text-center">
-              Chrome Extension
+            <h3 className="text-2xl sm:text-3xl font-bold text-foreground text-center">
+              Want it built into your browser?
             </h3>
             <p className="text-sm text-muted text-center max-w-md">
-              Use Vocable directly on any page without leaving your browser.
+              Same magic, zero tab-switching. Install the Chrome extension and listen to any page right where you are.
             </p>
             <a
               href="https://github.com/gamsoulasieu2024-gif/ListenMode"
@@ -517,7 +519,7 @@ export default function Home() {
               className="px-8 py-3.5 rounded-xl bg-[#111] hover:bg-[#222] dark:bg-white dark:hover:bg-gray-100 dark:text-[#111] text-white text-sm font-semibold tracking-wide transition-all"
               style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
             >
-              VIEW ON GITHUB
+              GET THE EXTENSION
             </a>
             <div
               className="w-full rounded-xl overflow-hidden border border-border"
@@ -538,7 +540,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="w-full border-t border-border py-8 px-6">
         <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted">
-          <span>&copy; {new Date().getFullYear()} Vocable. Built for accessibility.</span>
+          <span>&copy; {new Date().getFullYear()} Vocable</span>
           <a
             href="https://github.com/issamarida/vocable"
             target="_blank"
