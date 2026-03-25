@@ -426,53 +426,129 @@ export default function Home() {
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Landing page — shown when no content is loaded */}
         {!article && !loading && !error && (
-          <div className="flex-1 flex items-center justify-center px-6">
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-accent-soft flex items-center justify-center">
-                <IconHeadphones className="w-9 h-9 text-accent" />
+          <>
+            {/* Hero */}
+            <div className="w-full max-w-3xl mx-auto px-6 pt-10 pb-16 text-center">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-soft text-accent text-xs font-semibold tracking-wide mb-6">
+                <IconHeadphones className="w-3.5 h-3.5" />
+                AI-POWERED READING ASSISTANT
               </div>
-              <p className="text-xl text-foreground font-medium">
-                Paste a URL to get started
-              </p>
-              <p className="text-sm text-muted mt-2 max-w-sm mx-auto leading-relaxed">
-                Works best with articles, blog posts, and documentation pages
+              <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-foreground leading-[1.15]">
+                Read less.<br />Understand more.
+              </h2>
+              <p className="mt-5 text-lg text-muted max-w-xl mx-auto leading-relaxed">
+                Vocable turns any webpage into audio you can follow and understand — in 13 languages, powered by AI.
               </p>
             </div>
-          </div>
+
+            {/* Value props */}
+            <div className="w-full max-w-3xl mx-auto px-6 pb-16">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-2xl border border-border bg-surface p-6 text-center" style={{ boxShadow: "var(--shadow)" }}>
+                  <div className="w-11 h-11 mx-auto mb-3.5 rounded-xl bg-accent-soft flex items-center justify-center">
+                    <IconHeadphones className="w-5 h-5 text-accent" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">Listen Mode</h3>
+                  <p className="mt-1.5 text-xs text-muted leading-relaxed">Hear any webpage read aloud with premium AI voices</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-surface p-6 text-center" style={{ boxShadow: "var(--shadow)" }}>
+                  <div className="w-11 h-11 mx-auto mb-3.5 rounded-xl bg-accent-soft flex items-center justify-center">
+                    <IconBrain className="w-5 h-5 text-accent" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">Understand Mode</h3>
+                  <p className="mt-1.5 text-xs text-muted leading-relaxed">Get AI-simplified explanations of complex content</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-surface p-6 text-center" style={{ boxShadow: "var(--shadow)" }}>
+                  <div className="w-11 h-11 mx-auto mb-3.5 rounded-xl bg-accent-soft flex items-center justify-center">
+                    <IconGlobe className="w-5 h-5 text-accent" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">13 Languages</h3>
+                  <p className="mt-1.5 text-xs text-muted leading-relaxed">Listen and understand in your preferred language</p>
+                </div>
+              </div>
+            </div>
+
+            {/* How it works */}
+            <div className="w-full max-w-3xl mx-auto px-6 pb-16">
+              <h3 className="text-center text-xs font-semibold tracking-widest text-muted uppercase mb-8">How it works</h3>
+              <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-0">
+                <div className="flex-1 text-center px-4">
+                  <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold">1</div>
+                  <p className="text-sm font-medium text-foreground">Paste any URL</p>
+                  <p className="text-xs text-muted mt-1">Articles, blogs, docs — anything</p>
+                </div>
+                <div className="hidden sm:block w-12 h-px bg-border" />
+                <div className="flex-1 text-center px-4">
+                  <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold">2</div>
+                  <p className="text-sm font-medium text-foreground">Choose your mode</p>
+                  <p className="text-xs text-muted mt-1">Listen word-for-word or get a simplified explanation</p>
+                </div>
+                <div className="hidden sm:block w-12 h-px bg-border" />
+                <div className="flex-1 text-center px-4">
+                  <div className="w-10 h-10 mx-auto mb-3 rounded-full bg-accent text-white flex items-center justify-center text-sm font-bold">3</div>
+                  <p className="text-sm font-medium text-foreground">Press play</p>
+                  <p className="text-xs text-muted mt-1">Follow along as text highlights in real time</p>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </main>
 
       {/* Chrome Extension promo — bottom section */}
-      <section className="w-full max-w-2xl mx-auto px-6 py-16">
-        <div className="flex flex-col items-center gap-6">
-          <h3 className="text-lg font-semibold text-foreground">
-            Chrome Extension
-          </h3>
-          <a
-            href="https://github.com/gamsoulasieu2024-gif/ListenMode"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-8 py-3.5 rounded-xl bg-[#111] hover:bg-[#222] text-white text-sm font-semibold tracking-wide transition-all"
-            style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
-          >
-            DOWNLOAD CHROME EXTENSION VERSION
-          </a>
-          <div
-            className="w-full rounded-xl overflow-hidden border border-border"
-            style={{ boxShadow: "var(--shadow-lg)", aspectRatio: "16/9" }}
-          >
-            <iframe
-              src="https://www.youtube.com/embed/BDM17EFHzZw"
-              title="Vocable Chrome Extension Demo"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full"
-            />
+      <section className="w-full border-t border-border bg-surface">
+        <div className="max-w-2xl mx-auto px-6 py-16">
+          <div className="flex flex-col items-center gap-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-accent-soft text-accent text-xs font-semibold tracking-wide">
+              ALSO AVAILABLE AS
+            </div>
+            <h3 className="text-2xl font-bold text-foreground text-center">
+              Chrome Extension
+            </h3>
+            <p className="text-sm text-muted text-center max-w-md">
+              Use Vocable directly on any page without leaving your browser.
+            </p>
+            <a
+              href="https://github.com/gamsoulasieu2024-gif/ListenMode"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-3.5 rounded-xl bg-[#111] hover:bg-[#222] dark:bg-white dark:hover:bg-gray-100 dark:text-[#111] text-white text-sm font-semibold tracking-wide transition-all"
+              style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.25)" }}
+            >
+              VIEW ON GITHUB
+            </a>
+            <div
+              className="w-full rounded-xl overflow-hidden border border-border"
+              style={{ boxShadow: "var(--shadow-lg)", aspectRatio: "16/9" }}
+            >
+              <iframe
+                src="https://www.youtube.com/embed/BDM17EFHzZw"
+                title="Vocable Chrome Extension Demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="w-full border-t border-border py-8 px-6">
+        <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted">
+          <span>&copy; {new Date().getFullYear()} Vocable. Built for accessibility.</span>
+          <a
+            href="https://github.com/issamarida/vocable"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground transition"
+          >
+            GitHub
+          </a>
+        </div>
+      </footer>
 
       {/* Playback bar */}
       {hasContent && (
@@ -649,6 +725,16 @@ function IconHeadphones({ className = "" }) {
     >
       <path d="M3 18v-6a9 9 0 0118 0v6" />
       <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3v5zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3v5z" />
+    </svg>
+  );
+}
+
+function IconGlobe({ className = "" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <ellipse cx="12" cy="12" rx="4" ry="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
     </svg>
   );
 }
